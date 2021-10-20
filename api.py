@@ -14,13 +14,13 @@ warnings.filterwarnings("ignore")
 app = FastAPI()
 
 def get_data_dttot():
-    file_path = "../data/20210429140917.xlsx"
+    file_path = "data/20210429140917.xlsx"
     df = dttot_prepro(file_path)
     return df
 
 def get_data_wmd():
-    df1 = pd.read_excel('../data/20181023091737.xlsx')
-    df2 = pd.read_excel('../data/20181023091801.xlsx')
+    df1 = pd.read_excel('data/20181023091737.xlsx')
+    df2 = pd.read_excel('data/20181023091801.xlsx')
     df = wmd_prepro(df1, df2)
     return df
 
