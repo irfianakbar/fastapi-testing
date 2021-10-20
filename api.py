@@ -62,21 +62,6 @@ async def name_contains(Nama: str):
     return outp
 
 
-# @app.get('/DTTOT/')
-# async def dttot(Nama: Optional[str]=None, NIK: Optional[str]=None, Paspor: Optional[str]=None):
-#     df = get_data_dttot()
-#
-#     if Nama is not None:
-#         df = nama_similarity(df, Nama)
-#     if NIK is not None:
-#         df = NIK_similarity(df, 'NIK', NIK)
-#         print(df.shape)
-#     if Paspor is not None:
-#         df = paspor_similarity(df, 'paspor', Paspor)
-#
-#     outp = to_json(df)
-#     return outp
-
 @app.get('/DTTOT/')
 async def dttot(Nama: Optional[str]=None, NIK: Optional[str]=None, Paspor: Optional[str]=None):
     df = get_data_dttot()
@@ -116,9 +101,14 @@ async def dttot(Nama: Optional[str]=None, NIK: Optional[str]=None, Paspor: Optio
             print("tidak")
 
     outp = to_json(df)
+    simalarity_percentage = None
+
+    if nama_status is not None:
+        simalarity_percentage = df["similarity"][0]
 
     respond_out = {
         "Nama" : nama_status,
+        "Similarity_Score" : simalarity_percentage,
         "NIK" : nik_status,
         "Paspor" : paspor_status,
         "Note" : outp
@@ -159,18 +149,16 @@ async def wmd(Nama: Optional[str]=None, NIK: Optional[str]=None, Paspor: Optiona
             paspor_status = "match"
 
     outp = to_json(df)
+    simalarity_percentage = None
+
+    if nama_status is not None:
+        simalarity_percentage = df["similarity"][0]
 
     respond_out = {
         "Nama" : nama_status,
+        "Similarity_Score" : simalarity_percentage,
         "NIK" : nik_status,
         "Paspor" : paspor_status,
         "Note" : outp
     }
     return respond_out
-
-
-# if __name__ == "__main__":
-#     uvicorn.run("api:app", host="0.0.0.0", port=8090, log_level="info", reload=True)
-
-# to run python api.py
-# go here http://127.0.0.1:8090/docs
