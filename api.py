@@ -5,7 +5,7 @@ import pandas as pd
 import uvicorn
 from fastapi import BackgroundTasks, FastAPI
 
-from service.dttot import dttot_prepro, get_similarity, wmd_prepro
+from service.dttot import dttot_prepro, get_similarity, wmd_prepro, UN_prepro, UK_prepro
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -24,14 +24,22 @@ def get_data_wmd():
     df = wmd_prepro(df1, df2)
     return df
 
+def get_data_OPEC_UN_UK():
+    # df1 = pd.read_excel('data/OPEC_list.xlsx')
+    df2 = pd.read_excel('data/UN_list.xlsx')
+    df3 = pd.read_excel('data/UK_list.xlsx')
+
+    return df2, df3
 
 def nama_cons(df, input_nama):
     df = df["Nama"].contains(input_nama).reset_index(drop=True)
     return df
 
 
-def nama_similarity(df, input_nama):
-    df = get_similarity(df, input_nama)
+def nama_similarity(df, input_nama, treshold_value):
+    print("before: ", df.shape)
+    df = get_similarity(df, input_nama, treshold_value)
+    print("after: ", df.shape)
     return df
 
 
@@ -53,22 +61,13 @@ def to_json(df):
     return df.to_json(orient='records')
 
 
-@app.get('/DTTOT_contains/')
-async def name_contains(Nama: str):
-    df = get_data_dttot()
-    df = nama_cons(df, Nama)
-
-    outp = to_json(df)
-    return outp
-
-
 @app.get('/DTTOT/')
-async def dttot(Nama: Optional[str]=None, NIK: Optional[str]=None, Paspor: Optional[str]=None):
+async def dttot(Nama: Optional[str]=None, Similarity_Percentage: Optional[float]=0.8, NIK: Optional[str]=None, Paspor: Optional[str]=None):
     df = get_data_dttot()
     appended_data = []
 
     if Nama is not None:
-        df_nama = nama_similarity(df, Nama)
+        df_nama = nama_similarity(df, Nama, Similarity_Percentage)
         appended_data.append(df_nama)
     if NIK is not None:
         df_nik = NIK_similarity(df, 'NIK', NIK)
@@ -78,7 +77,7 @@ async def dttot(Nama: Optional[str]=None, NIK: Optional[str]=None, Paspor: Optio
         appended_data.append(df_paspor)
 
     df = pd.concat(appended_data).reset_index(drop=True)
-    df = df.loc[:0]
+    # df = df.loc[:0]
 
     nama_status = None
     nik_status = None
@@ -117,12 +116,12 @@ async def dttot(Nama: Optional[str]=None, NIK: Optional[str]=None, Paspor: Optio
 
 
 @app.get('/WMD/')
-async def wmd(Nama: Optional[str]=None, NIK: Optional[str]=None, Paspor: Optional[str]=None):
+async def wmd(Nama: Optional[str]=None, Similarity_Percentage: Optional[float]=0.8, NIK: Optional[str]=None, Paspor: Optional[str]=None):
     df = get_data_wmd()
     appended_data = []
 
     if Nama is not None:
-        df_nama = nama_similarity(df, Nama)
+        df_nama = nama_similarity(df, Nama, Similarity_Percentage)
         appended_data.append(df_nama)
     if NIK is not None:
         df_nik = NIK_similarity(df, 'Nomor Identitas', NIK)
@@ -132,7 +131,7 @@ async def wmd(Nama: Optional[str]=None, NIK: Optional[str]=None, Paspor: Optiona
         appended_data.append(df_paspor)
 
     df = pd.concat(appended_data).reset_index(drop=True)
-    df = df.loc[:0]
+    # df = df.loc[:0]
 
     nama_status = None
     nik_status = None
@@ -159,6 +158,68 @@ async def wmd(Nama: Optional[str]=None, NIK: Optional[str]=None, Paspor: Optiona
         "Similarity_Score" : simalarity_percentage,
         "NIK" : nik_status,
         "Paspor" : paspor_status,
+        "Note" : outp
+    }
+    return respond_out
+
+
+@app.get('/UN/')
+async def un(Nama: Optional[str]=None, Similarity_Percentage: Optional[float]=0.8):
+    df1, df2 = get_data_OPEC_UN_UK()
+    df = UN_prepro(df1)
+
+    # appended_data = []
+
+    if Nama is not None:
+        df_nama = nama_similarity(df, Nama, Similarity_Percentage)
+        # appended_data.append(df_nama)
+    # df = df_nama.loc[:0]
+    nama_status = None
+
+    if Nama is not None:
+        if df.shape[0] > 0:
+            nama_status = "match"
+
+    outp = to_json(df)
+    simalarity_percentage = None
+
+    if nama_status is not None:
+        simalarity_percentage = df["similarity"][0]
+
+    respond_out = {
+        "Nama" : nama_status,
+        "Similarity_Score" : simalarity_percentage,
+        "Note" : outp
+    }
+    return respond_out
+
+
+@app.get('/UK/')
+async def uk(Nama: Optional[str]=None, Similarity_Percentage: Optional[float]=0.8):
+    df1, df2 = get_data_OPEC_UN_UK()
+    df = UK_prepro(df2)
+
+    # appended_data = []
+
+    if Nama is not None:
+        df = nama_similarity(df, Nama, Similarity_Percentage)
+        # appended_data.append(df_nama)
+    # df = df.loc[:0]
+    nama_status = None
+
+    if Nama is not None:
+        if df.shape[0] > 0:
+            nama_status = "match"
+
+    outp = to_json(df)
+    simalarity_percentage = None
+
+    if nama_status is not None:
+        simalarity_percentage = df["similarity"][0]
+
+    respond_out = {
+        "Nama" : nama_status,
+        "Similarity_Score" : simalarity_percentage,
         "Note" : outp
     }
     return respond_out
