@@ -23,10 +23,6 @@ def extract_paspor(s):
 
 def jaro_distance(s1, s2):
     # lower case all the character
-    print("======================================================================")
-    print(s1)
-    print(s2)
-    print("======================================================================")
     s1 = s1.lower()
     s2 = s2.lower()
 
@@ -127,7 +123,7 @@ def dttot_prepro(path):
 
     return df_dttot
 
-def get_similarity(df, input_name):
+def get_similarity(df, input_name, treshold_value):
 
     now = datetime.now()
     current_time = now.strftime("%yy_%m_%d_%H_%M_%S")
@@ -137,7 +133,7 @@ def get_similarity(df, input_name):
     # save to local as excel file
     # df.to_excel("./temp/df_dttot_similarity_{}.xlsx".format(current_time), index=False)
     # filter
-    df = df[df['similarity'] >= 0.8].reset_index(drop=True)
+    df = df[df['similarity'] >= treshold_value].reset_index(drop=True)
 
     return df
 
@@ -161,3 +157,16 @@ def wmd_prepro(df1, df2):
 
     df_mwd = df_mwd.fillna("no data")
     return df_mwd
+
+def UN_prepro(df):
+    df = df.fillna("No Data")
+    cols = ["FIRST_NAME", "SECOND_NAME", "THIRD_NAME"]
+    df['nama_list']= df[cols].values.tolist()
+    return df
+
+def UK_prepro(df):
+    df["Name 6"] = df["Name 6"].str.replace('"', "")
+    df = df.fillna("No Data")
+    cols = ["Name 6", "Name 1", "Name 2", "Name 3", "Name 4", "Name 5"]
+    df['nama_list']= df[cols].values.tolist()
+    return df
