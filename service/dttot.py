@@ -8,6 +8,9 @@ import re
 
 
 def extract_NIK(s):
+    """
+    extract NIK from Deskripsi
+    """
     try:
         result = re.search('NIK(.*) ', s)
         return result.group(1)
@@ -15,6 +18,7 @@ def extract_NIK(s):
         return np.nan
 
 def extract_paspor(s):
+    "extract paspor from Deskripsi"
     try:
         result = re.search('paspor(.*) ', s)
         return result.group(1)
@@ -83,10 +87,10 @@ def jaro_distance(s1, s2):
                 point += 1
                 t += 1
     t = t//2
-
+    n = -0.03
     # Return the Jaro Similarity
-    return (match/ len1 + match / len2 +
-            (match - t + 1) / match)/ 3.0
+    return n + ((match/ len1 + match / len2 +
+            (match - t + 1) / match)/ 3.0)
 
 def jaro_distance_max(row, input_nama):
     percentage = round(np.max([jaro_distance(input_nama, s2) for s2 in row]), 2)
@@ -99,7 +103,7 @@ def dttot_prepro(path):
 
     # cleaning data
     print("cleaning data..")
-    df_dttot["Deskripsi"] = df_dttot["Deskripsi"].fillna("no data")
+    df_dttot["Deskripsi"] = df_dttot["Deskripsi"].fillna("No Data")
 
     pass_name = ["Paspor", "Paspor", "PASPOR", "passport", "Passport"]
     nik_name = ["NIK", "nik", "nomor identifikasi nasional", "Nomor Identifikasi Nasional", "Nomor identifikasi nasional"]
@@ -114,14 +118,216 @@ def dttot_prepro(path):
     df_dttot['Deskripsi'] = df_dttot['Deskripsi'].str.replace(".", "")
     df_dttot['Deskripsi'] = df_dttot['Deskripsi'].str.replace(",", " ")
 
+    df_dttot['Nama'] = df_dttot['Nama'].str.lower()
     df_dttot['NIK'] = df_dttot['Deskripsi'].apply(extract_NIK)
     df_dttot['paspor'] = df_dttot['Deskripsi'].apply(extract_paspor)
+    df_dttot["nama_list"] = df_dttot['Nama'].str.split("alias")
 
-    df_dttot["nama_list"] = df_dttot['Nama'].str.split("ALIAS")
     # fillnan
-    df_dttot = df_dttot.fillna("no data")
+    df_dttot = df_dttot.fillna("No Data")
+
+    # filter Orang
+    df_dttot = df_dttot[df_dttot["Terduga"] == "Orang"].reset_index(drop=True)
+
+    # change columns name
+    df_dttot = df_dttot.rename(columns = {"Tpt Lahir" : "Tempat Lahir",
+                                          "Tgl Lahir" : "Tanggal Lahir",
+                                          "WN" : "Kewarganegaraan"})
 
     return df_dttot
+
+def wmd_prepro(df1, df2):
+    df1 = df1.fillna("No Data")
+    cols = ["Nama", "Alias 1", "Alias 2", "Alias 3", "Alias 4", "Alias 5", "Alias 6", "Alias 7", "Alias 8", "Alias 9", "Alias 10", "Alias 11"]
+    df1['Alias'] = df1[cols].values.tolist()
+    df1.drop(cols[1:], axis=1, inplace=True)
+    df1 = df1.iloc[1:].reset_index(drop=True)
+
+    df2 = df2.fillna("No Data")
+    cols = ["Nama", "Alias 1", "Alias 2", "Alias 3", "Alias 4", "Alias 5"]
+    df2['Alias'] = df2[cols].values.tolist()
+    df2.drop(cols[1:], axis=1, inplace=True)
+    df2 = df2.iloc[1:].reset_index(drop=True)
+
+    df_mwd = pd.concat([df1, df2], ignore_index=True)
+    # df_mwd["nama_list"] = df_mwd['Alias'].str.split(" ")
+    df_mwd['Alias'] = df_mwd['Alias'].str.lower()
+    df_mwd["nama_list"] = df_mwd['Alias']
+
+    df_mwd = df_mwd.fillna("No Data")
+
+    # change columns name
+    df_mwd = df_mwd.rename(columns={"Informasi Lain" : "Deskripsi",
+                                    "Nomor Identitas" : "NIK",
+                                    "Nomor Paspor" : "paspor"})
+    return df_mwd
+
+def no_data_deletation(x):
+    return list(filter(('No Data').__ne__, x))
+
+def UK_prepro(df):
+    df["Name 6"] = df["Name 6"].str.replace('"', "")
+    df = df.fillna("No Data")
+    cols = ["Name 6", "Name 1", "Name 2", "Name 3", "Name 4", "Name 5"]
+    df['nama_list']= df[cols].values.tolist()
+
+    # delete No data value in nama_list column
+    df['nama_list'] = df['nama_list'].apply(no_data_deletation)
+
+    # create Nama and Alamat columns
+    nama_cols = ["Name 6", "Name 1", "Name 2", "Name 3", "Name 4", "Name 5"]
+    alamat_cols = ["Address 1", "Address 2", "Address 3", "Address 4", "Address 5", "Address 6"]
+
+    df['Nama'] = df[nama_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+    df['Nama'] = df['Nama'].str.replace("No Data ", "")
+    df['Nama'] = df['Nama'].str.replace(" No Data", "")
+
+    df['Alamat'] = df[alamat_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+    df['Alamat'] = df['Alamat'].str.replace("No Data ", "")
+    df['Alamat'] = df['Alamat'].str.replace(" No Data", "")
+
+    # delete Name and Address columns
+    df.drop(nama_cols, axis=1, inplace=True)
+    df.drop(alamat_cols, axis=1, inplace=True)
+
+    # tempat lahir
+    df["Tempat Lahir"] = df["Town of Birth"] + df["Country of Birth"]
+    df["Tempat Lahir"] = df["Tempat Lahir"].str.replace("No Data", "")
+
+    # remove columns
+    cols = ["Town of Birth", "Country of Birth"]
+    df.drop(cols, axis=1, inplace=True)
+    # rename Columns
+    df = df.rename(columns={"Title" : "Gelar",
+                       "DOB" : "Tanggal Lahir",
+                       "Nationality" : "Kewarganegaraan",
+                       "Passport Details" : "paspor",
+                       "Position" : "Pekerjaan",
+                       "Country" : "Negara",
+                       "Other Information" : "Deskripsi"})
+    return df
+
+def extract_orderdict_cols(df, col):
+    list_value = []
+    for x in df[col]:
+        try:
+            value = x.split(",")[-1].split("'")[1]
+        except:
+            value = "No Data"
+        list_value.append(value)
+    return list_value
+
+
+def extract_NATIONALITY(df, col):
+    list_value = []
+    for x in df[col]:
+        try:
+            value = x.split(",")[-1].split('"')[1]
+        except:
+            value = "No Data"
+        list_value.append(value)
+    return list_value
+
+def UN_prepro(df):
+    df = df.fillna("No Data")
+    cols = ["FIRST_NAME", "SECOND_NAME", "THIRD_NAME", "FOURTH_NAME"]
+
+    # create Nama column
+    df['Nama'] = df[cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+    df['Nama'] = df['Nama'].str.replace("No Data ", "")
+    df['Nama'] = df['Nama'].str.replace(" No Data", "")
+
+    cols_orderdict = ["DESIGNATION", "LIST_TYPE", "LAST_DAY_UPDATED", "INDIVIDUAL_ALIAS", "INDIVIDUAL_ADDRESS",
+                      "INDIVIDUAL_PLACE_OF_BIRTH", "INDIVIDUAL_DATE_OF_BIRTH", "INDIVIDUAL_DOCUMENT"]
+
+    for col in cols_orderdict:
+        df[col] = extract_orderdict_cols(df, col)
+
+    df['NATIONALITY'] = extract_NATIONALITY(df, 'NATIONALITY')
+    df['nama_list']= df[["Nama", "INDIVIDUAL_ALIAS"]].values.tolist()
+     # delete No data value in nama_list column
+    df['nama_list'] = df['nama_list'].apply(no_data_deletation)
+
+    # delete Name columns
+    cols = ["FIRST_NAME", "SECOND_NAME", "THIRD_NAME", "FOURTH_NAME", "INDIVIDUAL_ALIAS"]
+    df.drop(cols, axis=1, inplace=True)
+
+    # remove columns
+    cols = ["SORT_KEY", "SORT_KEY_LAST_MOD"]
+    df.drop(cols, axis=1, inplace=True)
+    # rename Columns
+    df = df.rename(columns={"LISTED_ON" : "Listed On",
+                            "COMMENTS1" : "Deskripsi",
+                            "DESIGNATION" : "Gelar",
+                            "NATIONALITY" : "Kewarganegaraan",
+                            "LAST_DAY_UPDATED" : "Last Updated",
+                            "INDIVIDUAL_ADDRESS" : "Alamat",
+                            "INDIVIDUAL_DATE_OF_BIRTH" : "Tanggal Lahir",
+                            "INDIVIDUAL_PLACE_OF_BIRTH" : "Tempat Lahir",
+                            "INDIVIDUAL_DOCUMENT" : "Document",
+                            "NAME_ORIGINAL_SCRIPT" : "Name Original Script",
+                            "GENDER" : "Gender",
+                            "TITLE" : "Gelar_2"})
+
+    return df
+
+def extract_OPEC_Nama(s):
+    return s.split(";")[0]
+
+def extract_OPEC_NIK(s):
+    """
+    extract NIK from Deskripsi
+    """
+    try:
+        result = re.search('National ID No. (.*);', s)
+        return result.group(1)
+    except:
+        return np.nan
+
+def extract_OPEC_DOB(s):
+    """
+    extract DOB from Deskripsi
+    """
+    try:
+        result = re.search('DOB (.*);', s)
+        return result.group(1)
+    except:
+        return np.nan
+
+def extract_OPEC_POB(s):
+    """
+    extract POB from Deskripsi
+    """
+    try:
+        result = re.search('POB (.*);', s)
+        return result.group(1)
+    except:
+        return np.nan
+
+def create_OPEC_name_list(s):
+    try:
+        result = s.split(" (a.k.a. ")
+        return result
+    except:
+        return list(s)
+
+def OPEC_prepro(df_OPEC):
+    df_OPEC = df_OPEC.rename(columns={"nama_list" : "Deskripsi"})
+    df_OPEC = df_OPEC[df_OPEC["Deskripsi"].str.contains("individual")].reset_index(drop=True)
+    df_OPEC = df_OPEC.iloc[1:].reset_index(drop=True)
+
+    df_OPEC["Nama"] = df_OPEC['Deskripsi'].apply(extract_OPEC_Nama)
+    df_OPEC["Nama"] = df_OPEC["Nama"].str.replace(",", "")
+    df_OPEC["Nama"] = df_OPEC["Nama"].str.replace('"', "")
+    df_OPEC['NIK'] = df_OPEC['Deskripsi'].apply(extract_OPEC_NIK)
+    df_OPEC['Tanggal Lahir'] = df_OPEC['Deskripsi'].apply(extract_OPEC_DOB)
+    df_OPEC['Tempat Lahir'] = df_OPEC['Deskripsi'].apply(extract_OPEC_POB)
+    df_OPEC["nama_list"] = df_OPEC['Nama'].apply(create_OPEC_name_list)
+    df_OPEC = df_OPEC.drop_duplicates(subset=['Nama']).reset_index(drop=True)
+    df_OPEC = df_OPEC.fillna("No Data")
+
+    return df_OPEC
+
 
 def get_similarity(df, input_name, treshold_value):
 
@@ -135,38 +341,4 @@ def get_similarity(df, input_name, treshold_value):
     # filter
     df = df[df['similarity'] >= treshold_value].reset_index(drop=True)
 
-    return df
-
-
-def wmd_prepro(df1, df2):
-    df1 = df1.fillna("no data")
-    cols = ["Nama", "Alias 1", "Alias 2", "Alias 3", "Alias 4", "Alias 5", "Alias 6", "Alias 7", "Alias 8", "Alias 9", "Alias 10", "Alias 11"]
-    df1['Alias'] = df1[cols].values.tolist()
-    df1.drop(cols[1:], axis=1, inplace=True)
-    df1 = df1.iloc[1:].reset_index(drop=True)
-
-    df2 = df2.fillna("no data")
-    cols = ["Nama", "Alias 1", "Alias 2", "Alias 3", "Alias 4", "Alias 5"]
-    df2['Alias'] = df2[cols].values.tolist()
-    df2.drop(cols[1:], axis=1, inplace=True)
-    df2 = df2.iloc[1:].reset_index(drop=True)
-
-    df_mwd = pd.concat([df1, df2], ignore_index=True)
-    # df_mwd["nama_list"] = df_mwd['Alias'].str.split(" ")
-    df_mwd["nama_list"] = df_mwd['Alias']
-
-    df_mwd = df_mwd.fillna("no data")
-    return df_mwd
-
-def UN_prepro(df):
-    df = df.fillna("No Data")
-    cols = ["FIRST_NAME", "SECOND_NAME", "THIRD_NAME"]
-    df['nama_list']= df[cols].values.tolist()
-    return df
-
-def UK_prepro(df):
-    df["Name 6"] = df["Name 6"].str.replace('"', "")
-    df = df.fillna("No Data")
-    cols = ["Name 6", "Name 1", "Name 2", "Name 3", "Name 4", "Name 5"]
-    df['nama_list']= df[cols].values.tolist()
     return df
