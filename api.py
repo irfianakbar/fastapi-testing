@@ -53,7 +53,7 @@ def get_all_data():
     return df_all
 
 def get_constraint():
-    file_path = "../data/Constraint_PPATK.xlsx"
+    file_path = "./data/Constraint_PPATK.xlsx"
     df = pd.read_excel(file_path)
     return df
 
