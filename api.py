@@ -12,28 +12,28 @@ warnings.filterwarnings("ignore")
 app = FastAPI()
 
 def get_data_dttot():
-    file_path = "../data/20210429140917.xlsx"
+    file_path = "./data/20210429140917.xlsx"
     df = dttot_prepro(file_path)
     return df
 
 def get_data_wmd():
-    df1 = pd.read_excel('../data/20181023091737.xlsx')
-    df2 = pd.read_excel('../data/20181023091801.xlsx')
+    df1 = pd.read_excel('./data/20181023091737.xlsx')
+    df2 = pd.read_excel('./data/20181023091801.xlsx')
     df = wmd_prepro(df1, df2)
     return df
 
 def get_data_un():
-    df_UN = pd.read_excel('../data/UN_list.xlsx')
+    df_UN = pd.read_excel('./data/UN_list.xlsx')
     df = UN_prepro(df_UN)
     return df
 
 def get_data_uk():
-    df_UK = pd.read_excel('../data/UK_list.xlsx')
+    df_UK = pd.read_excel('./data/UK_list.xlsx')
     df = UK_prepro(df_UK)
     return df
 
 def get_data_opec():
-    df_OPEC = pd.read_excel('../data/OPEC_list.xlsx')
+    df_OPEC = pd.read_excel('./data/OPEC_list.xlsx')
     df = OPEC_prepro(df_OPEC)
     return df
 
@@ -191,8 +191,8 @@ async def dttot(Nama: Optional[str]=None, NIK: Optional[str]=None, DOB: Optional
     return respond_out
 
 
-if __name__ == "__main__":
-    uvicorn.run("api:app", host="0.0.0.0", port=8090, log_level="info", reload=True)
+# if __name__ == "__main__":
+#     uvicorn.run("api:app", host="0.0.0.0", port=8090, log_level="info", reload=True)
 
 # to run python api.py
 # go here http://127.0.0.1:8090/docs
