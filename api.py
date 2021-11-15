@@ -47,7 +47,7 @@ app = FastAPI()
 #     return user
 
 def get_constraint():
-    file_path = "../data/Constraint_PPATK.csv"
+    file_path = "./data/Constraint_PPATK.csv"
     df = pd.read_csv(file_path)
     return df
 
