@@ -1,3 +1,4 @@
+import time
 import json
 import logging
 from typing import Optional
@@ -46,8 +47,8 @@ app = FastAPI()
 #     return user
 
 def get_constraint():
-    file_path = "../data/Constraint_PPATK.xlsx"
-    df = pd.read_excel(file_path)
+    file_path = "../data/Constraint_PPATK.csv"
+    df = pd.read_csv(file_path)
     return df
 
 def get_input_char(df, nama):
@@ -101,6 +102,8 @@ async def dttot(Nama: Optional[str]=None, NIK: Optional[str]=None, DOB: Optional
 
     # get data
     df = get_all_data()
+
+    start_time = time.time()
     # filter nama berdasarkan 4 character awal untuk setiap kata
     if Nama is not None:
         df_nama = get_input_char(df, Nama)
@@ -108,6 +111,7 @@ async def dttot(Nama: Optional[str]=None, NIK: Optional[str]=None, DOB: Optional
             df = df_nama.copy()
             dict_filter["Nama"] = Nama
             nama_status = "match"
+    print("--- %s seconds ---" % (time.time() - start_time))
 
     # filter DOB_similarity
     if DOB is not None:
@@ -153,7 +157,6 @@ async def dttot(Nama: Optional[str]=None, NIK: Optional[str]=None, DOB: Optional
             nama_status = "not match"
 
     reccomendation = treatment_constraint(nama_status, nik_status, dob_status, pob_status)
-
 
     respond_out = {
         "Recommendation" : reccomendation,
