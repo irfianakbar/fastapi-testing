@@ -8,28 +8,28 @@ warnings.filterwarnings("ignore")
 
 
 def get_data_dttot():
-    file_path = "../data/20210429140917.xlsx"
+    file_path = "./data/20210429140917.csv"
     df = dttot_prepro(file_path)
     return df
 
 def get_data_wmd():
-    df1 = pd.read_excel('../data/20181023091737.xlsx')
-    df2 = pd.read_excel('../data/20181023091801.xlsx')
+    df1 = pd.read_csv('./data/20181023091737.csv')
+    df2 = pd.read_csv('./data/20181023091801.csv')
     df = wmd_prepro(df1, df2)
     return df
 
 def get_data_un():
-    df_UN = pd.read_excel('../data/UN_list.xlsx')
+    df_UN = pd.read_csv('./data/UN_list.csv')
     df = UN_prepro(df_UN)
     return df
 
 def get_data_uk():
-    df_UK = pd.read_excel('../data/UK_list.xlsx')
+    df_UK = pd.read_csv('./data/UK_list.csv')
     df = UK_prepro(df_UK)
     return df
 
 def get_data_opec():
-    df_OPEC = pd.read_excel('../data/OPEC_list.xlsx')
+    df_OPEC = pd.read_csv('./data/OPEC_list.csv')
     df = OPEC_prepro(df_OPEC)
     return df
 

@@ -25,6 +25,9 @@ def dttot_extract_paspor(s):
     except:
         return np.nan
 
+def all_get_list_value(s):
+    return [s]
+
 def no_data_deletation(x):
     return list(filter(('No Data').__ne__, x))
 
@@ -162,8 +165,8 @@ def jaro_distance_max(row, input_nama):
 
 def dttot_prepro(path):
     # read file
-    print("read_excel file..")
-    df_dttot = pd.read_excel(path)
+    print("read_csv file..")
+    df_dttot = pd.read_csv(path)
 
     # cleaning data
     print("cleaning data..")
@@ -227,9 +230,12 @@ def wmd_prepro(df1, df2):
 
 def UK_prepro(df):
     df["Name 6"] = df["Name 6"].str.replace('"', "")
-    df = df.fillna("No Data")
+    # combine multiple columns into 1 with space seperator
     cols = ["Name 6", "Name 1", "Name 2", "Name 3", "Name 4", "Name 5"]
-    df['nama_list']= df[cols].values.tolist()
+    df["Nama"] = df[cols].apply(lambda x: ' '.join(x.dropna()), axis=1)
+
+    df = df.fillna("No Data")
+    df["nama_list"] =  df["Nama"].apply(all_get_list_value)
 
     # delete No data value in nama_list column
     df['nama_list'] = df['nama_list'].apply(no_data_deletation)
